@@ -1,38 +1,25 @@
-import mysql.connector
-import os
-from dotenv import load_dotenv
+from db import get_db
+from app import app 
 
-# טען משתני סביבה מהקובץ .env
-load_dotenv()
+def add_columns_to_mysql():
+    with app.app_context():
+        db = get_db()
+        cursor = db.cursor()
 
-# התחברות למסד הנתונים בענן (Railway)
-conn = mysql.connector.connect(
-    host=os.environ.get("MYSQL_HOST"),
-    port=int(os.environ.get("MYSQL_PORT")),
-    user=os.environ.get("MYSQL_USER"),
-    password=os.environ.get("MYSQL_PASSWORD"),
-    database=os.environ.get("MYSQL_DATABASE")
-)
+        try:
+            cursor.execute("ALTER TABLE ProductionPlans ADD COLUMN quality_status TEXT;")
+            print("✅ נוספה העמודה quality_status")
+        except Exception as e:
+            print(f"⚠️ quality_status: {e}")
 
-cur = conn.cursor()
+        try:
+            cursor.execute("ALTER TABLE ProductionPlans ADD COLUMN quality_notes TEXT;")
+            print("✅ נוספה העמודה quality_notes")
+        except Exception as e:
+            print(f"⚠️ quality_notes: {e}")
 
-# הוספת העמודות אם לא קיימות
-try:
-    cur.execute("ALTER TABLE ProductionPlans ADD COLUMN quality_status VARCHAR(255);")
-except mysql.connector.Error as e:
-    if "Duplicate column name" in str(e):
-        print("🔁 העמודה quality_status כבר קיימת.")
-    else:
-        raise e
+        db.commit()
+        db.close()
 
-try:
-    cur.execute("ALTER TABLE ProductionPlans ADD COLUMN quality_notes TEXT;")
-except mysql.connector.Error as e:
-    if "Duplicate column name" in str(e):
-        print("🔁 העמודה quality_notes כבר קיימת.")
-    else:
-        raise e
-
-conn.commit()
-conn.close()
-print("✅ סיום עדכון מבנה הטבלה.")
+if __name__ == '__main__':
+    add_columns_to_mysql()
